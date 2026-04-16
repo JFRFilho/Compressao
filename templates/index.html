@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ZipDrop — Compressão de Arquivos</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #12121a;
+      --surface2: #1a1a26;
+      --border: #2a2a3d;
+      --accent: #7c5cfc;
+      --accent2: #c084fc;
+      --accent3: #38bdf8;
+      --success: #34d399;
+      --warning: #fbbf24;
+      --danger: #f87171;
+      --text: #e8e8f0;
+      --muted: #6b6b8a;
+      --radius: 16px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      overflow-x: hidden;
+    }
+
+    /* Background grid */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(124,92,252,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(124,92,252,0.04) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Glow orbs */
+    .orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(100px);
+      opacity: 0.25;
+      pointer-events: none;
+      z-index: 0;
+      animation: float 8s ease-in-out infinite;
+    }
+    .orb-1 { width: 400px; height: 400px; background: var(--accent); top: -100px; left: -100px; }
+    .orb-2 { width: 300px; height: 300px; background: var(--accent3); bottom: -80px; right: -80px; animation-delay: -4s; }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(-30px) scale(1.05); }
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 640px;
+      padding: 48px 24px 80px;
+    }
+
+    /* Header */
+    header {
+      text-align: center;
+      margin-bottom: 52px;
+      animation: fadeDown 0.6s ease both;
+    }
+
+    .logo-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      padding: 6px 16px;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent2);
+      margin-bottom: 24px;
+    }
+
+    .logo-badge .dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--accent2);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(36px, 8vw, 56px);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      background: linear-gradient(135deg, #fff 0%, var(--accent2) 50%, var(--accent3) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 14px;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .limit-badge {
+      display: inline-block;
+      background: rgba(124,92,252,0.15);
+      border: 1px solid rgba(124,92,252,0.3);
+      color: var(--accent2);
+      border-radius: 6px;
+      padding: 2px 8px;
+      font-size: 12px;
+    }
+
+    /* Card */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 32px;
+      animation: fadeUp 0.7s ease both 0.1s;
+    }
+
+    /* Drop zone */
+    .dropzone {
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      padding: 48px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      background: rgba(255,255,255,0.01);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .dropzone::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 50% 50%, rgba(124,92,252,0.08), transparent 70%);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .dropzone:hover,
+    .dropzone.dragover {
+      border-color: var(--accent);
+      background: rgba(124,92,252,0.05);
+    }
+
+    .dropzone:hover::before,
+    .dropzone.dragover::before {
+      opacity: 1;
+    }
+
+    .dropzone.dragover {
+      transform: scale(1.01);
+    }
+
+    .drop-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+      display: block;
+      transition: transform 0.3s ease;
+    }
+    .dropzone:hover .drop-icon { transform: translateY(-4px) scale(1.1); }
+
+    .drop-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+
+    .drop-sub {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 20px;
+    }
+
+    .btn-browse {
+      display: inline-block;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 24px;
+      font-family: 'Syne', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      letter-spacing: 0.02em;
+    }
+    .btn-browse:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(124,92,252,0.4); }
+
+    #file-input { display: none; }
+
+    /* File selected state */
+    .file-selected {
+      display: none;
+      align-items: center;
+      gap: 12px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-top: 16px;
+    }
+    .file-selected.show { display: flex; }
+
+    .file-icon { font-size: 24px; flex-shrink: 0; }
+
+    .file-info { flex: 1; min-width: 0; }
+    .file-name {
+      font-family: 'Syne', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .file-size { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+    .btn-clear {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 18px;
+      padding: 4px;
+      flex-shrink: 0;
+      transition: color 0.2s;
+    }
+    .btn-clear:hover { color: var(--danger); }
+
+    /* Compress button */
+    .btn-compress {
+      width: 100%;
+      margin-top: 20px;
+      padding: 16px;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-family: 'Syne', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: 0.04em;
+      transition: all 0.25s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .btn-compress::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .btn-compress:hover:not(:disabled)::after { opacity: 1; }
+    .btn-compress:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(124,92,252,0.45); }
+    .btn-compress:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    /* Loading */
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 32px 0;
+    }
+    .loading.show { display: block; }
+
+    .spinner {
+      width: 48px; height: 48px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loading-text {
+      color: var(--muted);
+      font-size: 13px;
+      animation: blink 1.5s ease-in-out infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+    /* Result */
+    .result {
+      display: none;
+      margin-top: 20px;
+      animation: fadeUp 0.5s ease both;
+    }
+    .result.show { display: block; }
+
+    .result-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .result-icon { font-size: 28px; }
+    .result-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .result-title.success { color: var(--success); }
+    .result-title.warning { color: var(--warning); }
+
+    /* Stats grid */
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .stat {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 12px;
+      text-align: center;
+    }
+
+    .stat-label {
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .stat-value {
+      font-family: 'Syne', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .stat-value.green { color: var(--success); }
+    .stat-value.blue { color: var(--accent3); }
+    .stat-value.purple { color: var(--accent2); }
+
+    /* Size bar */
+    .size-bar-wrap {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+    .size-bar-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+    .size-bar-track {
+      background: var(--border);
+      border-radius: 100px;
+      height: 8px;
+      overflow: hidden;
+    }
+    .size-bar-fill {
+      height: 100%;
+      border-radius: 100px;
+      background: linear-gradient(90deg, var(--accent3), var(--accent));
+      transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+    }
+    .size-bar-limit {
+      display: flex;
+      justify-content: flex-end;
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    .limit-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      padding: 6px 12px;
+      border-radius: 6px;
+    }
+    .limit-indicator.ok { background: rgba(52,211,153,0.1); color: var(--success); border: 1px solid rgba(52,211,153,0.2); }
+    .limit-indicator.over { background: rgba(251,191,36,0.1); color: var(--warning); border: 1px solid rgba(251,191,36,0.2); }
+
+    /* Download button */
+    .btn-download {
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, var(--success), #059669);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-family: 'Syne', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: 0.04em;
+      transition: all 0.25s ease;
+      text-decoration: none;
+      display: block;
+      text-align: center;
+    }
+    .btn-download:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(52,211,153,0.35); }
+
+    .btn-new {
+      width: 100%;
+      margin-top: 10px;
+      padding: 12px;
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-family: 'Syne', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .btn-new:hover { color: var(--text); border-color: var(--accent); background: rgba(124,92,252,0.05); }
+
+    /* Error */
+    .error-box {
+      display: none;
+      background: rgba(248,113,113,0.08);
+      border: 1px solid rgba(248,113,113,0.25);
+      border-radius: 10px;
+      padding: 14px 16px;
+      color: var(--danger);
+      font-size: 13px;
+      margin-top: 16px;
+      align-items: center;
+      gap: 10px;
+    }
+    .error-box.show { display: flex; }
+
+    /* Footer */
+    footer {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      color: var(--muted);
+      font-size: 12px;
+      padding-bottom: 32px;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+
+<div class="container">
+  <header>
+    <div class="logo-badge">
+      <span class="dot"></span>
+      Compressão de Arquivos
+    </div>
+    <h1>ZipDrop</h1>
+    <p class="subtitle">
+      Envie qualquer arquivo e receba uma versão comprimida.<br>
+      Limite de saída: <span class="limit-badge">200 KB</span>
+    </p>
+  </header>
+
+  <div class="card">
+
+    <!-- Drop Zone -->
+    <div class="dropzone" id="dropzone">
+      <span class="drop-icon">📦</span>
+      <div class="drop-title">Arraste seu arquivo aqui</div>
+      <div class="drop-sub">ou clique para selecionar</div>
+      <label class="btn-browse" for="file-input">Escolher arquivo</label>
+      <input type="file" id="file-input" />
+    </div>
+
+    <!-- Selected File -->
+    <div class="file-selected" id="file-selected">
+      <span class="file-icon" id="file-icon">📄</span>
+      <div class="file-info">
+        <div class="file-name" id="file-name"></div>
+        <div class="file-size" id="file-size-display"></div>
+      </div>
+      <button class="btn-clear" id="btn-clear" title="Remover">✕</button>
+    </div>
+
+    <!-- Error -->
+    <div class="error-box" id="error-box">
+      <span>⚠️</span>
+      <span id="error-msg"></span>
+    </div>
+
+    <!-- Compress Button -->
+    <button class="btn-compress" id="btn-compress" disabled>
+      ⚡ Comprimir Arquivo
+    </button>
+
+    <!-- Loading -->
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <div class="loading-text">Comprimindo arquivo...</div>
+    </div>
+
+    <!-- Result -->
+    <div class="result" id="result">
+      <div class="result-header">
+        <span class="result-icon" id="result-icon">✅</span>
+        <span class="result-title success" id="result-title">Compressão concluída!</span>
+      </div>
+
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-label">Original</div>
+          <div class="stat-value blue" id="stat-original">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Comprimido</div>
+          <div class="stat-value purple" id="stat-compressed">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Redução</div>
+          <div class="stat-value green" id="stat-reduction">—</div>
+        </div>
+      </div>
+
+      <div class="size-bar-wrap">
+        <div class="size-bar-label">
+          <span>Tamanho do arquivo comprimido</span>
+          <span id="limit-indicator-inline"></span>
+        </div>
+        <div class="size-bar-track">
+          <div class="size-bar-fill" id="size-bar" style="width:0%"></div>
+        </div>
+        <div class="size-bar-limit">Limite: 200 KB</div>
+      </div>
+
+      <a class="btn-download" id="btn-download" href="#">
+        ⬇ Baixar arquivo comprimido
+      </a>
+      <button class="btn-new" id="btn-new">Comprimir outro arquivo</button>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  ZipDrop &mdash; Compressão com ZIP Deflate nível 9
+</footer>
+
+<script>
+  const dropzone = document.getElementById('dropzone');
+  const fileInput = document.getElementById('file-input');
+  const fileSelected = document.getElementById('file-selected');
+  const fileName = document.getElementById('file-name');
+  const fileSizeDisplay = document.getElementById('file-size-display');
+  const fileIcon = document.getElementById('file-icon');
+  const btnClear = document.getElementById('btn-clear');
+  const btnCompress = document.getElementById('btn-compress');
+  const loading = document.getElementById('loading');
+  const result = document.getElementById('result');
+  const errorBox = document.getElementById('error-box');
+  const errorMsg = document.getElementById('error-msg');
+
+  let selectedFile = null;
+
+  function getFileIcon(name) {
+    const ext = name.split('.').pop().toLowerCase();
+    const map = {
+      pdf: '📕', doc: '📝', docx: '📝', xls: '📊', xlsx: '📊',
+      ppt: '📋', pptx: '📋', txt: '📄', zip: '🗜️', rar: '🗜️',
+      jpg: '🖼️', jpeg: '🖼️', png: '🖼️', gif: '🖼️', mp4: '🎬',
+      mp3: '🎵', py: '🐍', js: '🟨', html: '🌐', css: '🎨',
+    };
+    return map[ext] || '📄';
+  }
+
+  function formatKB(kb) {
+    if (kb >= 1024) return (kb / 1024).toFixed(2) + ' MB';
+    return kb.toFixed(2) + ' KB';
+  }
+
+  function setFile(file) {
+    selectedFile = file;
+    fileName.textContent = file.name;
+    fileSizeDisplay.textContent = formatKB(file.size / 1024);
+    fileIcon.textContent = getFileIcon(file.name);
+    fileSelected.classList.add('show');
+    btnCompress.disabled = false;
+    result.classList.remove('show');
+    errorBox.classList.remove('show');
+    loading.classList.remove('show');
+  }
+
+  function clearFile() {
+    selectedFile = null;
+    fileInput.value = '';
+    fileSelected.classList.remove('show');
+    btnCompress.disabled = true;
+    result.classList.remove('show');
+    errorBox.classList.remove('show');
+  }
+
+  dropzone.addEventListener('click', (e) => {
+    if (!e.target.closest('label')) fileInput.click();
+  });
+
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files[0]) setFile(fileInput.files[0]);
+  });
+
+  dropzone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropzone.classList.add('dragover');
+  });
+  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+  dropzone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropzone.classList.remove('dragover');
+    if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]);
+  });
+
+  btnClear.addEventListener('click', clearFile);
+
+  btnCompress.addEventListener('click', async () => {
+    if (!selectedFile) return;
+
+    btnCompress.disabled = true;
+    loading.classList.add('show');
+    result.classList.remove('show');
+    errorBox.classList.remove('show');
+
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+
+    try {
+      const res = await fetch('/compress', { method: 'POST', body: formData });
+      const data = await res.json();
+
+      loading.classList.remove('show');
+
+      if (data.error) {
+        errorMsg.textContent = data.error;
+        errorBox.classList.add('show');
+        btnCompress.disabled = false;
+        return;
+      }
+
+      // Fill stats
+      document.getElementById('stat-original').textContent = formatKB(data.original_size_kb);
+      document.getElementById('stat-compressed').textContent = formatKB(data.compressed_size_kb);
+      document.getElementById('stat-reduction').textContent = data.reduction_percent + '%';
+
+      // Bar
+      const pct = Math.min((data.compressed_size_kb / 200) * 100, 100);
+      document.getElementById('size-bar').style.width = pct + '%';
+      document.getElementById('size-bar').style.background = data.within_limit
+        ? 'linear-gradient(90deg, #34d399, #059669)'
+        : 'linear-gradient(90deg, #fbbf24, #f59e0b)';
+
+      document.getElementById('limit-indicator-inline').textContent =
+        data.within_limit ? '✅ Dentro do limite' : '⚠️ Acima de 200 KB';
+
+      // Download link
+      document.getElementById('btn-download').href = '/download/' + data.output_filename;
+
+      result.classList.add('show');
+
+    } catch (err) {
+      loading.classList.remove('show');
+      errorMsg.textContent = 'Erro ao comprimir o arquivo. Tente novamente.';
+      errorBox.classList.add('show');
+      btnCompress.disabled = false;
+    }
+  });
+
+  document.getElementById('btn-new').addEventListener('click', () => {
+    clearFile();
+  });
+</script>
+</body>
+</html>
