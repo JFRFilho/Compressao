@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>ZipDrop — Compressão de Arquivos</title>
+  <title>CartZip — Compressão de Arquivos</title>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
   <style>
     :root {
@@ -11,7 +11,7 @@
       --surface: #12121a;
       --surface2: #1a1a26;
       --border: #2a2a3d;
-      --accent: #7c5cfc;
+      --accent: #f9fc5c;
       --accent2: #c084fc;
       --accent3: #38bdf8;
       --success: #34d399;
@@ -499,7 +499,7 @@
       <span class="dot"></span>
       Compressão de Arquivos
     </div>
-    <h1>ZipDrop</h1>
+    <h1>CartZip</h1>
     <p class="subtitle">
       Envie qualquer arquivo e receba uma versão comprimida.<br>
       Limite de saída: <span class="limit-badge">200 KB</span>
@@ -591,6 +591,9 @@
 </footer>
 
 <script>
+  document.title = 'CartZip - Compressao de Arquivos';
+  document.querySelector('footer').innerHTML = 'CartZip &mdash; CompressÃ£o com ZIP Deflate nÃ­vel 9';
+
   const dropzone = document.getElementById('dropzone');
   const fileInput = document.getElementById('file-input');
   const fileSelected = document.getElementById('file-selected');
