@@ -4,6 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>CartZip — Compressão de Arquivos</title>
+  <script>
+    const systemTheme = window.matchMedia('(prefers-color-scheme: dark)');
+    let savedTheme = null;
+    try { savedTheme = localStorage.getItem('cartzip-theme'); } catch (_) {}
+    document.documentElement.dataset.theme = savedTheme === 'dark' || savedTheme === 'light'
+      ? savedTheme : (systemTheme.matches ? 'dark' : 'light');
+  </script>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
 </head>
@@ -13,6 +20,7 @@
 <div class="orb orb-2"></div>
 
 <div class="container">
+  <div class="theme-controls"><button class="theme-toggle" id="theme-toggle" type="button" aria-pressed="false">Modo noturno</button></div>
   <header>
     <h1>Alta Compressão<br><span>de Arquivos</span></h1>
     <p class="subtitle">Foco na Produtivida<br class="desktop-break"> Meta de <strong>1 MB</strong>.</p>
@@ -109,6 +117,26 @@
 
 <script>
   document.title = 'CartZip - Compressao de Arquivos';
+  const themeToggle = document.getElementById('theme-toggle');
+  function updateThemeButton() {
+    const isDark = document.documentElement.dataset.theme === 'dark';
+    themeToggle.setAttribute('aria-pressed', String(isDark));
+    themeToggle.textContent = isDark ? '☀ Modo claro' : '☾ Modo noturno';
+  }
+  updateThemeButton();
+  themeToggle.addEventListener('click', () => {
+    const theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+    document.documentElement.dataset.theme = theme;
+    savedTheme = theme;
+    try { localStorage.setItem('cartzip-theme', theme); } catch (_) {}
+    updateThemeButton();
+  });
+  systemTheme.addEventListener('change', () => {
+    if (!savedTheme) {
+      document.documentElement.dataset.theme = systemTheme.matches ? 'dark' : 'light';
+      updateThemeButton();
+    }
+  });
 
   const dropzone = document.getElementById('dropzone');
   const fileInput = document.getElementById('file-input');
@@ -221,7 +249,7 @@
       const pct = Math.min((data.compressed_size_kb / 1024) * 100, 100);
       document.getElementById('size-bar').style.width = pct + '%';
       document.getElementById('size-bar').style.background = data.within_limit
-        ? 'linear-gradient(90deg, #8e81fb, #5746e8)'
+        ? 'linear-gradient(90deg, #69a8f5, #1769d2)'
         : 'linear-gradient(90deg, #e5b66e, #a75c13)';
 
       document.getElementById('limit-indicator-inline').textContent =
