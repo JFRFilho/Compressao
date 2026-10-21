@@ -5,5 +5,8 @@ services:
     ports:
       - "5000:5000"
     volumes:
-      - ./uploads:/app/uploads
+      - uploads:/app/uploads
     restart: unless-stopped
+
+volumes:
+  uploads:

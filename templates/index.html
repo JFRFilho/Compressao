@@ -4,489 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>CartZip — Compressão de Arquivos</title>
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
-  <style>
-    :root {
-      --bg: #f5f9ff;
-      --surface: #ffffff;
-      --surface2: #eef5ff;
-      --border: #cbd9ee;
-      --accent: #0d6efd;
-      --accent2: #050816;
-      --accent3: #3b82f6;
-      --success: #0d6efd;
-      --warning: #050816;
-      --danger: #0b1f3a;
-      --text: #050816;
-      --muted: #5b6475;
-      --radius: 16px;
-    }
-
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'DM Mono', monospace;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      overflow-x: hidden;
-    }
-
-    /* Background grid */
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background-image:
-        linear-gradient(rgba(13,110,253,0.08) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(13,110,253,0.08) 1px, transparent 1px);
-      background-size: 40px 40px;
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    /* Glow orbs */
-    .orb {
-      position: fixed;
-      border-radius: 50%;
-      filter: blur(100px);
-      opacity: 0.25;
-      pointer-events: none;
-      z-index: 0;
-      animation: float 8s ease-in-out infinite;
-    }
-    .orb-1 { width: 400px; height: 400px; background: var(--accent); top: -100px; left: -100px; }
-    .orb-2 { width: 300px; height: 300px; background: var(--accent3); bottom: -80px; right: -80px; animation-delay: -4s; }
-
-    @keyframes float {
-      0%, 100% { transform: translateY(0) scale(1); }
-      50% { transform: translateY(-30px) scale(1.05); }
-    }
-
-    .container {
-      position: relative;
-      z-index: 1;
-      width: 100%;
-      max-width: 640px;
-      padding: 48px 24px 80px;
-    }
-
-    /* Header */
-    header {
-      text-align: center;
-      margin-bottom: 52px;
-      animation: fadeDown 0.6s ease both;
-    }
-
-    .logo-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 100px;
-      padding: 6px 16px;
-      font-size: 11px;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--accent2);
-      margin-bottom: 24px;
-    }
-
-    .logo-badge .dot {
-      width: 6px; height: 6px;
-      border-radius: 50%;
-      background: var(--accent2);
-      animation: pulse 2s infinite;
-    }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.3; }
-    }
-
-    h1 {
-      font-family: 'Syne', sans-serif;
-      font-size: clamp(36px, 8vw, 56px);
-      font-weight: 800;
-      letter-spacing: -0.03em;
-      line-height: 1.1;
-      background: linear-gradient(135deg, #050816 0%, var(--accent) 50%, var(--accent3) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      margin-bottom: 14px;
-    }
-
-    .subtitle {
-      color: var(--muted);
-      font-size: 14px;
-      line-height: 1.6;
-    }
-
-    .limit-badge {
-      display: inline-block;
-      background: rgba(13,110,253,0.12);
-      border: 1px solid rgba(13,110,253,0.3);
-      color: var(--accent);
-      border-radius: 6px;
-      padding: 2px 8px;
-      font-size: 12px;
-    }
-
-    /* Card */
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 32px;
-      animation: fadeUp 0.7s ease both 0.1s;
-    }
-
-    /* Drop zone */
-    .dropzone {
-      border: 2px dashed var(--border);
-      border-radius: 12px;
-      padding: 48px 24px;
-      text-align: center;
-      cursor: pointer;
-      transition: all 0.25s ease;
-      background: rgba(13,110,253,0.04);
-      position: relative;
-      overflow: hidden;
-    }
-
-    .dropzone::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(circle at 50% 50%, rgba(13,110,253,0.1), transparent 70%);
-      opacity: 0;
-      transition: opacity 0.3s;
-    }
-
-    .dropzone:hover,
-    .dropzone.dragover {
-      border-color: var(--accent);
-      background: rgba(13,110,253,0.08);
-    }
-
-    .dropzone:hover::before,
-    .dropzone.dragover::before {
-      opacity: 1;
-    }
-
-    .dropzone.dragover {
-      transform: scale(1.01);
-    }
-
-    .drop-icon {
-      font-size: 48px;
-      margin-bottom: 16px;
-      display: block;
-      transition: transform 0.3s ease;
-    }
-    .dropzone:hover .drop-icon { transform: translateY(-4px) scale(1.1); }
-
-    .drop-title {
-      font-family: 'Syne', sans-serif;
-      font-size: 18px;
-      font-weight: 700;
-      color: var(--text);
-      margin-bottom: 8px;
-    }
-
-    .drop-sub {
-      color: var(--muted);
-      font-size: 13px;
-      margin-bottom: 20px;
-    }
-
-    .btn-browse {
-      display: inline-block;
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      padding: 10px 24px;
-      font-family: 'Syne', sans-serif;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      letter-spacing: 0.02em;
-    }
-    .btn-browse:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(13,110,253,0.28); }
-
-    #file-input { display: none; }
-
-    /* File selected state */
-    .file-selected {
-      display: none;
-      align-items: center;
-      gap: 12px;
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 14px 16px;
-      margin-top: 16px;
-    }
-    .file-selected.show { display: flex; }
-
-    .file-icon { font-size: 24px; flex-shrink: 0; }
-
-    .file-info { flex: 1; min-width: 0; }
-    .file-name {
-      font-family: 'Syne', sans-serif;
-      font-size: 14px;
-      font-weight: 600;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .file-size { font-size: 12px; color: var(--muted); margin-top: 2px; }
-
-    .btn-clear {
-      background: none;
-      border: none;
-      color: var(--muted);
-      cursor: pointer;
-      font-size: 18px;
-      padding: 4px;
-      flex-shrink: 0;
-      transition: color 0.2s;
-    }
-    .btn-clear:hover { color: var(--danger); }
-
-    /* Compress button */
-    .btn-compress {
-      width: 100%;
-      margin-top: 20px;
-      padding: 16px;
-      background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
-      color: #fff;
-      border: none;
-      border-radius: 10px;
-      font-family: 'Syne', sans-serif;
-      font-size: 16px;
-      font-weight: 700;
-      cursor: pointer;
-      letter-spacing: 0.04em;
-      transition: all 0.25s ease;
-      position: relative;
-      overflow: hidden;
-    }
-    .btn-compress::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
-      opacity: 0;
-      transition: opacity 0.2s;
-    }
-    .btn-compress:hover:not(:disabled)::after { opacity: 1; }
-    .btn-compress:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(13,110,253,0.3); }
-    .btn-compress:disabled { opacity: 0.45; cursor: not-allowed; }
-
-    /* Loading */
-    .loading {
-      display: none;
-      text-align: center;
-      padding: 32px 0;
-    }
-    .loading.show { display: block; }
-
-    .spinner {
-      width: 48px; height: 48px;
-      border: 3px solid var(--border);
-      border-top-color: var(--accent);
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      margin: 0 auto 16px;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    .loading-text {
-      color: var(--muted);
-      font-size: 13px;
-      animation: blink 1.5s ease-in-out infinite;
-    }
-    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.4} }
-
-    /* Result */
-    .result {
-      display: none;
-      margin-top: 20px;
-      animation: fadeUp 0.5s ease both;
-    }
-    .result.show { display: block; }
-
-    .result-header {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 20px;
-    }
-    .result-icon { font-size: 28px; }
-    .result-title {
-      font-family: 'Syne', sans-serif;
-      font-size: 18px;
-      font-weight: 700;
-    }
-    .result-title.success { color: var(--success); }
-    .result-title.warning { color: var(--warning); }
-
-    /* Stats grid */
-    .stats {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 10px;
-      margin-bottom: 20px;
-    }
-
-    .stat {
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 14px 12px;
-      text-align: center;
-    }
-
-    .stat-label {
-      font-size: 10px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 6px;
-    }
-    .stat-value {
-      font-family: 'Syne', sans-serif;
-      font-size: 18px;
-      font-weight: 700;
-    }
-    .stat-value.green { color: var(--success); }
-    .stat-value.blue { color: var(--accent3); }
-    .stat-value.purple { color: var(--accent2); }
-
-    /* Size bar */
-    .size-bar-wrap {
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 16px;
-      margin-bottom: 20px;
-    }
-    .size-bar-label {
-      display: flex;
-      justify-content: space-between;
-      font-size: 12px;
-      color: var(--muted);
-      margin-bottom: 10px;
-    }
-    .size-bar-track {
-      background: var(--border);
-      border-radius: 100px;
-      height: 8px;
-      overflow: hidden;
-    }
-    .size-bar-fill {
-      height: 100%;
-      border-radius: 100px;
-      background: linear-gradient(90deg, var(--accent3), var(--accent));
-      transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
-    }
-    .size-bar-limit {
-      display: flex;
-      justify-content: flex-end;
-      font-size: 11px;
-      color: var(--muted);
-      margin-top: 6px;
-    }
-
-    .limit-indicator {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 12px;
-      padding: 6px 12px;
-      border-radius: 6px;
-    }
-    .limit-indicator.ok { background: rgba(13,110,253,0.1); color: var(--success); border: 1px solid rgba(13,110,253,0.22); }
-    .limit-indicator.over { background: rgba(5,8,22,0.08); color: var(--warning); border: 1px solid rgba(5,8,22,0.18); }
-
-    /* Download button */
-    .btn-download {
-      width: 100%;
-      padding: 16px;
-      background: linear-gradient(135deg, var(--accent), #050816);
-      color: #fff;
-      border: none;
-      border-radius: 10px;
-      font-family: 'Syne', sans-serif;
-      font-size: 16px;
-      font-weight: 700;
-      cursor: pointer;
-      letter-spacing: 0.04em;
-      transition: all 0.25s ease;
-      text-decoration: none;
-      display: block;
-      text-align: center;
-    }
-    .btn-download:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(13,110,253,0.26); }
-
-    .btn-new {
-      width: 100%;
-      margin-top: 10px;
-      padding: 12px;
-      background: transparent;
-      color: var(--muted);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      font-family: 'Syne', sans-serif;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-    .btn-new:hover { color: var(--text); border-color: var(--accent); background: rgba(13,110,253,0.08); }
-
-    /* Error */
-    .error-box {
-      display: none;
-      background: rgba(13,110,253,0.08);
-      border: 1px solid rgba(13,110,253,0.25);
-      border-radius: 10px;
-      padding: 14px 16px;
-      color: var(--danger);
-      font-size: 13px;
-      margin-top: 16px;
-      align-items: center;
-      gap: 10px;
-    }
-    .error-box.show { display: flex; }
-
-    /* Footer */
-    footer {
-      position: relative;
-      z-index: 1;
-      text-align: center;
-      color: var(--muted);
-      font-size: 12px;
-      padding-bottom: 32px;
-    }
-
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes fadeDown {
-      from { opacity: 0; transform: translateY(-20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
 </head>
 <body>
 
@@ -495,24 +14,18 @@
 
 <div class="container">
   <header>
-    <div class="logo-badge">
-      <span class="dot"></span>
-      Compressão de Arquivos
-    </div>
-    <h1>CartZip</h1>
-    <p class="subtitle">
-      Envie qualquer arquivo e receba uma versão comprimida.<br>
-      Limite de saída: <span class="limit-badge">200 KB</span>
-    </p>
+    <h1>Alta Compressão<br><span>de Arquivos</span></h1>
+    <p class="subtitle">Foco na Produtivida<br class="desktop-break"> Meta de <strong>1 MB</strong>.</p>
   </header>
 
   <div class="card">
+    <div class="card-heading"><div><span class="eyebrow">COMECE AQUI</span><h2>Seu arquivo, mais leve.</h2></div><span class="limit-badge">Meta · 1 MB</span></div>
 
     <!-- Drop Zone -->
     <div class="dropzone" id="dropzone">
-      <span class="drop-icon">📦</span>
+      <span class="drop-icon" aria-hidden="true">↥</span>
       <div class="drop-title">Arraste seu arquivo aqui</div>
-      <div class="drop-sub">ou clique para selecionar</div>
+      <div class="drop-sub">PDFs, imagens e outros arquivos · até 500 MB</div>
       <label class="btn-browse" for="file-input">Escolher arquivo</label>
       <input type="file" id="file-input" />
     </div>
@@ -526,6 +39,8 @@
       </div>
       <button class="btn-clear" id="btn-clear" title="Remover">✕</button>
     </div>
+
+    <div class="file-hint"><span>01 · Envie</span><span>02 · Comprima</span><span>03 · Baixe</span></div>
 
     <!-- Error -->
     <div class="error-box" id="error-box">
@@ -574,12 +89,14 @@
         <div class="size-bar-track">
           <div class="size-bar-fill" id="size-bar" style="width:0%"></div>
         </div>
-        <div class="size-bar-limit">Limite: 200 KB</div>
+        <div class="size-bar-limit">Limite: 1 MB</div>
       </div>
 
+      <div class="result-warning" id="result-warning" role="alert"></div>
       <a class="btn-download" id="btn-download" href="#">
         ⬇ Baixar arquivo comprimido
       </a>
+      <a class="btn-download over-limit" id="btn-download-over" href="#" hidden></a>
       <button class="btn-new" id="btn-new">Comprimir outro arquivo</button>
     </div>
 
@@ -587,12 +104,11 @@
 </div>
 
 <footer>
-  ZipDrop &mdash; Compressão com ZIP Deflate nível 9
+  CartZip · Menos tamanho, mais praticidade.
 </footer>
 
 <script>
   document.title = 'CartZip - Compressao de Arquivos';
-  document.querySelector('footer').innerHTML = 'CartZip &mdash; CompressÃ£o com ZIP Deflate nÃ­vel 9';
 
   const dropzone = document.getElementById('dropzone');
   const fileInput = document.getElementById('file-input');
@@ -606,6 +122,9 @@
   const result = document.getElementById('result');
   const errorBox = document.getElementById('error-box');
   const errorMsg = document.getElementById('error-msg');
+  const downloadButton = document.getElementById('btn-download');
+  const downloadOverButton = document.getElementById('btn-download-over');
+  const resultWarning = document.getElementById('result-warning');
 
   let selectedFile = null;
 
@@ -633,6 +152,7 @@
     fileSelected.classList.add('show');
     btnCompress.disabled = false;
     result.classList.remove('show');
+    resultWarning.classList.remove('show');
     errorBox.classList.remove('show');
     loading.classList.remove('show');
   }
@@ -643,6 +163,7 @@
     fileSelected.classList.remove('show');
     btnCompress.disabled = true;
     result.classList.remove('show');
+    resultWarning.classList.remove('show');
     errorBox.classList.remove('show');
   }
 
@@ -697,17 +218,32 @@
       document.getElementById('stat-reduction').textContent = data.reduction_percent + '%';
 
       // Bar
-      const pct = Math.min((data.compressed_size_kb / 200) * 100, 100);
+      const pct = Math.min((data.compressed_size_kb / 1024) * 100, 100);
       document.getElementById('size-bar').style.width = pct + '%';
       document.getElementById('size-bar').style.background = data.within_limit
-        ? 'linear-gradient(90deg, #3b82f6, #0d6efd)'
-        : 'linear-gradient(90deg, #0d6efd, #050816)';
+        ? 'linear-gradient(90deg, #8e81fb, #5746e8)'
+        : 'linear-gradient(90deg, #e5b66e, #a75c13)';
 
       document.getElementById('limit-indicator-inline').textContent =
-        data.within_limit ? '✅ Dentro do limite' : '⚠️ Acima de 200 KB';
+        data.within_limit ? '✅ Dentro do limite' : '⚠️ Acima de 1 MB';
 
-      // Download link
-      document.getElementById('btn-download').href = '/download/' + data.output_filename;
+      const downloadUrl = '/download/' + encodeURIComponent(data.output_filename);
+      downloadButton.hidden = !data.within_limit;
+      downloadOverButton.hidden = data.within_limit;
+      resultWarning.classList.toggle('show', !data.within_limit);
+      document.getElementById('result-title').classList.toggle('success', data.within_limit);
+      document.getElementById('result-title').classList.toggle('warning', !data.within_limit);
+      document.getElementById('result-icon').textContent = data.within_limit ? '✅' : '⚠️';
+      if (data.within_limit) {
+        document.getElementById('result-title').textContent = 'Compressão concluída!';
+        downloadButton.href = downloadUrl;
+      } else {
+        const finalSize = formatKB(data.compressed_size_kb);
+        document.getElementById('result-title').textContent = 'Meta de 1 MB não atingida';
+        resultWarning.textContent = `O resultado ficou com ${finalSize}, acima da meta de 1 MB. Você pode baixar esta versão mesmo assim.`;
+        downloadOverButton.textContent = `⬇ Baixar mesmo assim (${finalSize})`;
+        downloadOverButton.href = downloadUrl;
+      }
 
       result.classList.add('show');
 

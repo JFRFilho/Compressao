@@ -16,6 +16,7 @@ RUN pip install --no-cache-dir --upgrade pip \
 
 COPY app.py .
 COPY templates ./templates
+COPY static ./static
 
 RUN mkdir -p /app/uploads
 

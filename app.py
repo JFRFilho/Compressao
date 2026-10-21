@@ -14,7 +14,7 @@ upload_folder = os.path.join(app.root_path, 'uploads')
 os.makedirs(upload_folder, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = upload_folder
 
-MAX_KB = 200
+MAX_KB = 1024
 MAX_BYTES = MAX_KB * 1024
 
 
@@ -83,7 +83,7 @@ def compress_pdf_rasterized(input_path, output_path):
 
     attempts = [(72, 40), (60, 30), (50, 25), (40, 20), (30, 15)]
     best_size_kb = get_size_kb(input_path)
-    best_note = 'NÃ£o foi possÃ­vel reduzir o PDF para atÃ© 200 KB.'
+    best_note = 'NÃ£o foi possÃ­vel reduzir o PDF para atÃ© 1 MB.'
 
     for dpi, quality in attempts:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -148,12 +148,12 @@ def compress_pdf_rasterized(input_path, output_path):
                 best_note = note
 
     if os.path.exists(output_path):
-        return False, get_size_kb(output_path), best_note + ' (ainda acima de 200 KB)'
+        return False, get_size_kb(output_path), best_note + ' (ainda acima de 1 MB)'
     return False, best_size_kb, best_note
 
 
 def compress_pdf(input_path, output_path):
-    """Try progressively more aggressive PDF compression until <= 200 KB."""
+    """Try progressively more aggressive PDF compression until <= 1 MB."""
     current_input = input_path
     tmp_files = []
 
@@ -188,12 +188,12 @@ def compress_pdf(input_path, output_path):
     shutil.copy(best, output_path)
     for f in tmp_files:
         if os.path.exists(f): os.remove(f)
-    return False, get_size_kb(output_path), 'PDF comprimido ao máximo possível com Ghostscript (ainda acima de 200 KB)'
+    return False, get_size_kb(output_path), 'PDF comprimido ao máximo possível com Ghostscript (ainda acima de 1 MB)'
 
 
 def compress_image(input_path, output_path):
     pass
-    """Use Pillow to resize+recompress images until <= 200 KB."""
+    """Use Pillow to resize+recompress images until <= 1 MB."""
     try:
         from PIL import Image
         import io
@@ -254,7 +254,7 @@ def compress_image(input_path, output_path):
 
 
 def compress_pdf_strict(input_path, output_path):
-    """Enforce the 200 KB cap with an extra rasterized fallback for PDFs."""
+    """Enforce the 1 MB cap with an extra rasterized fallback for PDFs."""
     success, _, method_note = compress_pdf(input_path, output_path)
     if os.path.exists(output_path) and get_size_kb(output_path) <= MAX_KB:
         return True, get_size_kb(output_path), method_note
@@ -276,7 +276,7 @@ def compress_pdf_strict(input_path, output_path):
 
 
 def compress_image_strict(input_path, output_path):
-    """Use stronger JPEG recompression to enforce the 200 KB cap."""
+    """Use stronger JPEG recompression to enforce the 1 MB cap."""
     try:
         from PIL import Image
     except ImportError:
@@ -408,16 +408,6 @@ def compress():
             raise FileNotFoundError('Arquivo de saída não pôde ser criado.')
 
         compressed_kb = get_size_kb(final_output)
-        if compressed_kb > MAX_KB:
-            if os.path.exists(final_output):
-                os.remove(final_output)
-            return jsonify({
-                'error': (
-                    f'NÃ£o foi possÃ­vel gerar um arquivo com no mÃ¡ximo {MAX_KB} KB. '
-                    f'O menor resultado ficou com {round(compressed_kb, 2)} KB. '
-                    'Tente um arquivo menor ou aceite uma perda maior de qualidade.'
-                )
-            }), 422
         reduction = round((1 - compressed_kb / original_size_kb) * 100, 1) if original_size_kb > 0 else 0
 
         return jsonify({
