@@ -109,6 +109,22 @@
     </div>
 
   </div>
+
+  <div class="card merge-card">
+    <div class="card-heading"><div><span class="eyebrow">PDF</span><h2>Unir PDFs</h2></div></div>
+    <p class="merge-description">Escolha um ou vários PDFs. A ordem da lista será a ordem das páginas. Os arquivos serão unidos sem compressão e sem limite de 1 MB para o resultado.</p>
+    <label class="btn-browse" for="merge-input">Escolher PDFs</label>
+    <input type="file" id="merge-input" accept=".pdf,application/pdf" multiple />
+    <ol class="merge-list" id="merge-list"></ol>
+    <div class="error-box" id="merge-error" role="alert"><span>⚠️</span><span id="merge-error-msg"></span></div>
+    <button class="btn-compress" id="btn-merge" disabled>Unir PDFs</button>
+    <div class="loading" id="merge-loading"><div class="spinner"></div><div class="loading-text">Unindo PDFs...</div></div>
+    <div class="result" id="merge-result">
+      <div class="result-header"><span class="result-icon">✅</span><span class="result-title success" id="merge-result-title">PDF pronto!</span></div>
+      <p class="merge-description" id="merge-result-detail"></p>
+      <a class="btn-download" id="merge-download" href="#">⬇ Baixar PDF unido</a>
+    </div>
+  </div>
 </div>
 
 <footer>
@@ -285,6 +301,59 @@
 
   document.getElementById('btn-new').addEventListener('click', () => {
     clearFile();
+  });
+
+  const mergeInput = document.getElementById('merge-input');
+  const mergeList = document.getElementById('merge-list');
+  const btnMerge = document.getElementById('btn-merge');
+  const mergeError = document.getElementById('merge-error');
+  const mergeErrorMsg = document.getElementById('merge-error-msg');
+  const mergeLoading = document.getElementById('merge-loading');
+  const mergeResult = document.getElementById('merge-result');
+
+  mergeInput.addEventListener('change', () => {
+    mergeList.replaceChildren();
+    mergeError.classList.remove('show');
+    mergeResult.classList.remove('show');
+    for (const file of mergeInput.files) {
+      const item = document.createElement('li');
+      item.textContent = `${file.name} (${formatKB(file.size / 1024)})`;
+      mergeList.appendChild(item);
+    }
+    btnMerge.disabled = mergeInput.files.length === 0;
+  });
+
+  btnMerge.addEventListener('click', async () => {
+    const files = Array.from(mergeInput.files);
+    if (!files.length) return;
+    if (files.some(file => !file.name.toLowerCase().endsWith('.pdf'))) {
+      mergeErrorMsg.textContent = 'Selecione apenas arquivos PDF.';
+      mergeError.classList.add('show');
+      return;
+    }
+
+    btnMerge.disabled = true;
+    mergeError.classList.remove('show');
+    mergeResult.classList.remove('show');
+    mergeLoading.classList.add('show');
+    const formData = new FormData();
+    files.forEach(file => formData.append('files', file));
+
+    try {
+      const response = await fetch('/merge', { method: 'POST', body: formData });
+      const data = await response.json();
+      if (!response.ok || data.error) throw new Error(data.error || 'Erro ao unir os PDFs.');
+      document.getElementById('merge-result-title').textContent = data.file_count === 1 ? 'PDF pronto!' : 'PDFs unidos!';
+      document.getElementById('merge-result-detail').textContent = `${data.file_count} arquivo(s) · ${formatKB(data.size_kb)} · sem compressão`;
+      document.getElementById('merge-download').href = '/download/' + encodeURIComponent(data.output_filename);
+      mergeResult.classList.add('show');
+    } catch (error) {
+      mergeErrorMsg.textContent = error.message || 'Erro ao unir os PDFs.';
+      mergeError.classList.add('show');
+    } finally {
+      mergeLoading.classList.remove('show');
+      btnMerge.disabled = false;
+    }
   });
 </script>
 </body>

@@ -2,12 +2,15 @@
 
 Aplicação web em Python para comprimir PDFs, imagens e outros arquivos. A interface permite enviar um arquivo, acompanhar o processamento e baixar o resultado, com uma meta de saída de **1 MB**.
 
+Também permite unir um ou vários PDFs, na ordem selecionada, sem aplicar compressão e sem meta de tamanho para o PDF unido.
+
 Se o resultado ultrapassar essa meta, a página informa o tamanho final e oferece o botão **“Baixar mesmo assim”**.
 
 ## Tecnologias
 
 - **Python 3.11 e Flask:** servidor e rotas da aplicação.
 - **Ghostscript:** recompressão e rasterização de PDFs.
+- **pypdf:** união de PDFs sem passar pela rotina de compressão.
 - **Pillow:** processamento de imagens e montagem de PDFs rasterizados.
 - **ZIP Deflate:** compactação de outros formatos.
 - **HTML, CSS e JavaScript:** interface, envio e apresentação do resultado.
@@ -59,6 +62,8 @@ Após alterar a interface, atualize o navegador com **Ctrl + F5** caso os estilo
 2. Clique em **“Comprimir Arquivo”** e aguarde o processamento.
 3. Confira o tamanho original, o tamanho final e a redução obtida.
 4. Baixe o resultado. Quando a meta de 1 MB não for atingida, o aviso explica isso e o botão **“Baixar mesmo assim”** mostra o tamanho final.
+
+Para unir PDFs, use a seção **Unir PDFs**, selecione um ou vários arquivos e clique em **Unir PDFs**. A lista mostra a ordem usada no documento final. Com um único PDF, o arquivo é copiado sem alterações.
 
 ## Como a compressão funciona
 
@@ -117,6 +122,7 @@ Compressao/
 |---|---|---|
 | GET | `/` | Exibe a interface. |
 | POST | `/compress` | Recebe o campo `file` em `multipart/form-data`, processa e retorna JSON com os tamanhos, o nome da saída e `within_limit`. |
+| POST | `/merge` | Recebe um ou mais campos `files` em `multipart/form-data` e retorna o nome e tamanho do PDF unido. |
 | GET | `/download/<filename>` | Entrega o arquivo gerado para download. |
 
 ## Configurações principais

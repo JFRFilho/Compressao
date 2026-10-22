@@ -16,6 +16,7 @@ h1{font-family:'Syne',sans-serif;font-size:clamp(32px,5.5vw,52px);font-weight:70
 h1 span{color:var(--accent)}
 .subtitle{color:var(--muted);font-size:14px;line-height:1.7}.subtitle strong{color:var(--text)}
 .card{background:white;border:1px solid #fff;border-radius:var(--radius);padding:30px;box-shadow:0 14px 55px #183c670c,0 2px 6px #183c6705}
+.merge-card{margin-top:22px}.merge-description{font-size:12px;line-height:1.6;color:var(--muted);margin-bottom:18px}.merge-list{margin:15px 0 0;padding-left:22px;font-size:12px;line-height:1.8;overflow-wrap:anywhere}.merge-list:empty{display:none}#merge-input{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}.merge-card .btn-browse{margin-bottom:2px}.merge-card .result{margin-top:20px}
 .card-heading{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:22px}
 .eyebrow{font-size:9px;font-weight:700;letter-spacing:1.6px;color:var(--muted)}
 h2{font:700 19px 'Syne',sans-serif;margin-top:6px;letter-spacing:-.4px}

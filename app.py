@@ -5,8 +5,11 @@ import subprocess
 import shutil
 import glob
 import io
+import uuid
 from flask import Flask, request, send_file, render_template, jsonify
 from werkzeug.utils import secure_filename
+from pypdf import PdfReader, PdfWriter
+from pypdf.errors import PdfReadError
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024
@@ -342,6 +345,54 @@ def compress_generic(input_path, output_path):
 @app.route('/')
 def index():
     return render_template('index.html')
+
+
+@app.route('/merge', methods=['POST'])
+def merge_pdfs():
+    files = request.files.getlist('files')
+    if not files or any(not file.filename for file in files):
+        return jsonify({'error': 'Selecione pelo menos um PDF.'}), 400
+    if any(os.path.splitext(file.filename)[1].lower() != '.pdf' for file in files):
+        return jsonify({'error': 'Envie apenas arquivos PDF.'}), 400
+
+    ensure_upload_folder()
+    output_filename = f'pdf_unido_{uuid.uuid4().hex}.pdf'
+    output_path = os.path.join(app.config['UPLOAD_FOLDER'], output_filename)
+
+    try:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            input_paths = []
+            for index, file in enumerate(files):
+                input_path = os.path.join(temp_dir, f'{index}.pdf')
+                file.save(input_path)
+                with open(input_path, 'rb') as source:
+                    reader = PdfReader(source, strict=True)
+                    if reader.is_encrypted or len(reader.pages) == 0:
+                        raise ValueError('Um dos PDFs está protegido ou não contém páginas.')
+                input_paths.append(input_path)
+
+            if len(input_paths) == 1:
+                shutil.copyfile(input_paths[0], output_path)
+            else:
+                writer = PdfWriter()
+                try:
+                    for input_path in input_paths:
+                        writer.append(input_path)
+                    with open(output_path, 'wb') as output:
+                        writer.write(output)
+                finally:
+                    writer.close()
+
+        return jsonify({
+            'success': True,
+            'output_filename': output_filename,
+            'file_count': len(files),
+            'size_kb': round(get_size_kb(output_path), 2),
+        })
+    except (PdfReadError, ValueError, OSError) as error:
+        if os.path.exists(output_path):
+            os.remove(output_path)
+        return jsonify({'error': f'Não foi possível unir os PDFs: {error}'}), 400
 
 
 @app.route('/compress', methods=['POST'])
